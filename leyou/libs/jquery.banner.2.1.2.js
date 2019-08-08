@@ -1,11 +1,9 @@
 define(["jq"],function(_){
     "use strict";
-
     // $.fn.extend({
     //     banner:function(){
     //     }
     // })
-
     $.fn.banner = function(options){
         // console.log(this)
         var that = this;
@@ -35,7 +33,7 @@ define(["jq"],function(_){
         ban.iPrev = null;
 
 
-        // 3.生成list（最下面的小圆点）
+        // L1.生成list（最下面的小圆点）
         ban.init = function(){
             if(!ban.list) return;
             this.ul = $("<ul>");
@@ -67,13 +65,11 @@ define(["jq"],function(_){
                 backgroundColor:"red",
                 color:"#fff"
             })
-
             this.listAction()
         }
-        // 4.小圆点的点击切换对应图片的功能
+        // L2.小圆点的点击切换对应图片的功能
         ban.listAction = function(){
             var _this = this;
-			console.log(this);
             this.ul.children("li").click(function(){
                 // 点击元素的索引：$(this).index()
                 // 默认的索引：_this.index
@@ -99,8 +95,8 @@ define(["jq"],function(_){
                 })
             })
         }
+        // L3.根据计算好的索引，移动对应的图片
         ban.listMove = function(type,iNow){
-			// console.log(this);
             // 谁走：this.index
             // 谁进来：iNow
             options.items.eq(this.index).css({
@@ -117,6 +113,7 @@ define(["jq"],function(_){
         }
         
 
+        // B1.绑定左右按钮的点击事件
         ban.btnActive = function(){
             // console.log(options.left)
             if(!(options.left != undefined && options.left.length > 0 && options.right != undefined && options.right.length > 0)) return;
@@ -125,7 +122,7 @@ define(["jq"],function(_){
 
             // 绑定点击事件
             options.left.on("click",function(){
-                // 计算索引
+                // B2-1.计算索引
                 if(_this.index == 0){
                     _this.index = options.items.length-1;
                     _this.iPrev = 0;
@@ -135,18 +132,22 @@ define(["jq"],function(_){
                 }
                 _this.btnMove(-1);
             })
-            options.right.on("click",function(){
-                // 计算索引
-                if(_this.index == options.items.length-1){
-                    _this.index = 0;
-                    _this.iPrev = options.items.length-1;
-                }else{
-                    _this.index++;
-                    _this.iPrev = _this.index - 1;
-                }
-                _this.btnMove(1);
-            })
+
+            // 因为rightClick是事件处理函数，其中的this指向了触发事件的元素，为了能够在rightClick中继续找到ban，所以使用bind修改this指向
+            options.right.on("click",this.rightClick.bind(this));
         }
+        ban.rightClick = function(){
+            // B2-2.计算索引
+            if(this.index == options.items.length-1){
+                this.index = 0;
+                this.iPrev = options.items.length-1;
+            }else{
+                this.index++;
+                this.iPrev = this.index - 1;
+            }
+            this.btnMove(1);
+        }
+        // B3.根据左右按钮计算的索引，移动对应的图片
         ban.btnMove = function(type){
             // 要走的：this.iPrev
             // 要进来：this.index
@@ -160,7 +161,8 @@ define(["jq"],function(_){
                 left:0
             },this.moveTime)
 
-            // 设置list的li当前项，取消所有，给点击的设置
+            // B4.设置list的li当前项，取消所有，给点击的设置
+            if(!this.list) return ;
             this.ul.children("li").css({
                 backgroundColor:"",
                 color:""
@@ -170,8 +172,32 @@ define(["jq"],function(_){
             })
         }
 
+        // A1.开启计时器，执行右按钮的事件处理函数
+        ban.autoAction = function(){
+            var _this = this;
+            if(!ban.autoPlay) return;
+            // 通过计时器执行右按钮的事件，实现自动轮播
+            this.t = setInterval(() => {
+                this.rightClick()
+            }, this.delayTime);
 
-        ban.init()
-        ban.btnActive()
+            // A2.给大框添加鼠标进入和离开事件，做停止和继续
+            that.hover(function(){
+                clearInterval(_this.t)
+            },function(){
+                _this.t = setInterval(() => {
+                    _this.rightClick()
+                }, _this.delayTime);
+            })
+        }
+
+        // list的启动方法
+        ban.init();
+
+        // 左右按钮的启动方法
+        ban.btnActive();
+
+        // 自动播放的启动方法
+        ban.autoAction();
     }
 });
